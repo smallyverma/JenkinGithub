@@ -1,1 +1,30 @@
-jenkin files
+pipeline {
+    agent any
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout source code from SCM
+                git 'https://github.com/example/repository.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                // Build the code (replace with your build command)
+                sh 'mvn clean package'
+            }
+        }
+    post {
+        success {
+            // Notify success
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            // Notify failure
+            echo 'Pipeline failed!'
+        }
+        always {
+            // Clean up or perform any final actions
+        }
+    }
+}
