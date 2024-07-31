@@ -1,0 +1,50 @@
+pipeline:
+  agent:
+    label: 'Sakshi'
+  
+  environment:
+    MSBUILD_PATH: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\MSBuild\\Current\\Bin\\MSBuild.exe"
+    SOLUTION_FILE: "E:\\JenkinGithub\\JenkinGithub\\JenkinGithub.sln"
+    WebDeployPath: "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe"
+    TargetServer: "172.27.59.148"  # IP address of your IIS server
+    SiteName: "JenkinProject"          # Name of the IIS site
+    DeployDirectory: "C:\\inetpub\\wwwroot\\JenkinApp"  # Path to deploy on IIS server
+    ArtifactName: "JenkinApp.zip"    # Name of the artifact to deploy
+    ARTIFACTS_DIR: "C:\\ProgramData\\Jenkins\\workspace\\Sonar2" # Adjust as per your Jenkins job configuration
+    DEPLOY_PACKAGE: "JenkinApp.zip"
+  
+  stages:
+    - stage: 'Checkout'
+      steps:
+        - checkout:
+            scm:
+              $class: 'GitSCM'
+              branches:
+                - name: '*/master'
+              userRemoteConfigs:
+                - url: 'https://github.com/smallyverma/JenkinGithub.git/'
+
+    - stage: 'Build'
+      steps:
+        - bat: "\"${env.MSBUILD_PATH}\" ${env.SOLUTION_FILE} /p:Configuration=Release"
+
+    # Uncomment if you need to include the Publish stage
+    # - stage: 'Publish'
+    #   steps:
+    #     - bat: "\"${env.MSBUILD_PATH}\" ${env.SOLUTION_FILE} /p:Configuration=Release /p:DeployOnBuild=true /p:PublishDir=${env.PUBLISH_DIR}"
+
+    - stage: 'Package'
+      steps:
+        - bat: "powershell Compress-Archive -Path E:\\JenkinGithub\\JenkinGithub\\obj\\Release\\Package\\JenkinGithub.zip -DestinationPath ${env.ArtifactName} -Force"
+
+    # Uncomment if you need to include the Deploy to IIS stage
+    # - stage: 'Deploy to IIS'
+    #   steps:
+    #     - bat: 'iisreset /stop /s %IIS_SERVER_IP%'
+    #     - bat: 'del /Q "\\\\%IIS_SERVER_IP%\\C$\\inetpub\\wwwroot\\%IIS_SITE_NAME%\\*"'
+    #     - bat: 'xcopy "E:\\JenkinGithub\\JenkinGithub\\obj\\Release\\Package\\JenkinGithub.zip" "\\172.27.59.148\\C$\\inetpub\\wwwroot\\JenkinApp\\" /E /Y'
+    #     - bat: 'iisreset /start /s %IIS_SERVER_IP%'
+
+    - stage: 'Deploy'
+      steps:
+        - bat: "\"${env.WebDeployPath}\" -verb:sync -source:package=\"${env.ARTIFACTS_DIR}\\${env.DEPLOY_PACKAGE}\" -dest:auto,computerName=https://172.27.59.148:156/msdeploy.axd?site=${env.SiteName}\",userName=sakshive,password=smally@171819,authType='Basic' -allowUntrusted"
